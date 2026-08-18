@@ -3,14 +3,28 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Money System</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
 
-    <link rel="icon" type="image/png" href="icon.png">
-    <link rel="apple-touch-icon" href="icon.png">
+    <link
+        rel="icon"
+        type="image/png"
+        href="icon.png"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="icon.png"
+    >
 </head>
 
 <body>
@@ -18,6 +32,7 @@
 <div class="app">
 
     <!-- LOGIN -->
+
     <section id="loginScreen">
 
         <h1>💰 MONEY SYSTEM</h1>
@@ -36,21 +51,34 @@
             autocomplete="current-password"
         >
 
-        <button id="loginButton" class="primary">
+        <button
+            id="loginButton"
+            class="primary"
+        >
             🔐 LOG IN
         </button>
 
-        <button id="showCreateButton" class="secondary">
+        <button
+            id="showCreateButton"
+            class="secondary"
+        >
             CREATE ACCOUNT
         </button>
 
-        <p id="loginMessage" class="message"></p>
+        <p
+            id="loginMessage"
+            class="message"
+        ></p>
 
     </section>
 
 
     <!-- CREATE ACCOUNT -->
-    <section id="createScreen" class="hidden">
+
+    <section
+        id="createScreen"
+        class="hidden"
+    >
 
         <h1>CREATE ACCOUNT</h1>
 
@@ -68,25 +96,39 @@
             autocomplete="new-password"
         >
 
-        <button id="createButton" class="primary">
+        <button
+            id="createButton"
+            class="primary"
+        >
             CREATE ACCOUNT
         </button>
 
-        <button id="backToLoginButton" class="secondary">
+        <button
+            id="backToLoginButton"
+            class="secondary"
+        >
             BACK
         </button>
 
-        <p id="createMessage" class="message"></p>
+        <p
+            id="createMessage"
+            class="message"
+        ></p>
 
     </section>
 
 
     <!-- NORMAL USER -->
-    <section id="userScreen" class="hidden">
+
+    <section
+        id="userScreen"
+        class="hidden"
+    >
 
         <h1 id="welcomeText">
             Welcome!
         </h1>
+
 
         <div class="moneyContainer">
 
@@ -126,25 +168,58 @@
 
         <div class="actionButtons">
 
-            <button id="buyButton" class="buy">
+            <button
+                id="buyButton"
+                class="buy"
+            >
                 🔴 BUY
             </button>
 
-            <button id="saveButton" class="save">
+            <button
+                id="saveButton"
+                class="save"
+            >
                 🟢 SAVE
             </button>
 
-            <button id="withdrawButton" class="withdraw">
+            <button
+                id="withdrawButton"
+                class="withdraw"
+            >
                 🟣 WITHDRAW
             </button>
 
         </div>
 
-        <p id="userMessage" class="message"></p>
 
-        <button id="userLogoutButton" class="logout">
+        <button
+            id="redeemVoucherButton"
+            class="secondary"
+        >
+            🎟️ REDEEM VOUCHER
+        </button>
+
+        <input
+            id="voucherFileInput"
+            type="file"
+            accept=".msv,.json"
+            class="hidden"
+        >
+
+
+        <p
+            id="userMessage"
+            class="message"
+        ></p>
+
+
+        <button
+            id="userLogoutButton"
+            class="logout"
+        >
             LOG OUT
         </button>
+
 
         <button
             id="deleteOwnAccountButton"
@@ -157,15 +232,30 @@
 
 
     <!-- MOM PANEL -->
-    <section id="adminScreen" class="hidden">
+
+    <section
+        id="adminScreen"
+        class="hidden"
+    >
 
         <h1 class="adminTitle">
             👑 MOM PANEL
         </h1>
 
-        <h2>Accounts</h2>
+        <h2>
+            Accounts
+        </h2>
 
         <div id="accountList"></div>
+
+
+        <button
+            id="createVoucherButton"
+            class="secondary"
+        >
+            🎟️ CREATE MONEY VOUCHER
+        </button>
+
 
         <button
             id="deleteMomButton"
@@ -173,6 +263,7 @@
         >
             🗑️ DELETE MOM ACCOUNT
         </button>
+
 
         <button
             id="adminLogoutButton"
