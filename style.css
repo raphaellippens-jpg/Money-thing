@@ -1,0 +1,381 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+
+    font-family: Arial, sans-serif;
+
+    background: #62B9E8;
+    color: #1111AA;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.app {
+    width: 95%;
+    max-width: 750px;
+
+    min-height: 500px;
+
+    padding: 25px;
+
+    text-align: center;
+}
+
+h1 {
+    font-size: 42px;
+    font-weight: 900;
+
+    margin: 10px 0 30px;
+}
+
+h2 {
+    font-size: 28px;
+    margin-bottom: 20px;
+}
+
+
+/* INPUTS */
+
+input {
+    display: block;
+
+    width: 90%;
+    max-width: 350px;
+
+    margin: 10px auto;
+
+    padding: 14px;
+
+    border: 3px solid transparent;
+    border-radius: 12px;
+
+    font-size: 17px;
+
+    outline: none;
+}
+
+input:focus {
+    border-color: #1111AA;
+}
+
+
+/* BUTTONS */
+
+button {
+    border: none;
+
+    border-radius: 15px;
+
+    padding: 14px 25px;
+
+    margin: 8px;
+
+    font-size: 17px;
+    font-weight: bold;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.1s,
+        filter 0.1s;
+}
+
+button:hover {
+    filter: brightness(1.08);
+}
+
+button:active {
+    transform: scale(0.94);
+}
+
+
+/* LOGIN */
+
+.primary {
+    display: block;
+
+    background: #1111AA;
+    color: white;
+
+    min-width: 200px;
+
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.secondary {
+    display: block;
+
+    background: white;
+    color: #1111AA;
+
+    min-width: 200px;
+
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+/* MONEY */
+
+.moneyContainer {
+    display: flex;
+
+    justify-content: center;
+
+    gap: 20px;
+
+    flex-wrap: wrap;
+
+    margin: 25px 0;
+}
+
+.moneyBox {
+    width: 230px;
+
+    padding: 20px;
+
+    border-radius: 20px;
+
+    border: 3px solid #222;
+
+    box-shadow:
+        0 5px 0 rgba(0, 0, 0, 0.15);
+}
+
+.balanceBox {
+    background: #F2A64A;
+}
+
+.savedBox {
+    background: #4FA5DC;
+}
+
+.moneyTitle {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.moneyValue {
+    font-size: 32px;
+    font-weight: bold;
+
+    margin-top: 8px;
+}
+
+
+/* USER BUTTONS */
+
+.actionButtons {
+    display: flex;
+
+    justify-content: center;
+
+    flex-wrap: wrap;
+}
+
+.buy {
+    background: #EF3026;
+    color: white;
+
+    min-width: 130px;
+}
+
+.save {
+    background: #63F53C;
+    color: black;
+
+    min-width: 130px;
+}
+
+.withdraw {
+    background: #DDDDDD;
+    color: #8A50D8;
+
+    min-width: 130px;
+}
+
+
+/* MOM PANEL */
+
+.adminTitle {
+    color: #8A50D8;
+}
+
+.account {
+    background: white;
+    color: #222;
+
+    padding: 15px;
+
+    margin: 12px auto;
+
+    border-radius: 15px;
+
+    max-width: 650px;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    gap: 15px;
+
+    flex-wrap: wrap;
+
+    box-shadow:
+        0 4px 0 rgba(0, 0, 0, 0.15);
+}
+
+.accountInfo {
+    text-align: left;
+    flex: 1;
+}
+
+.accountName {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.accountMoney {
+    margin-top: 5px;
+    font-size: 15px;
+}
+
+
+/* MOM INCREASE */
+
+.increase {
+    background: #EF3026;
+    color: white;
+}
+
+
+/* DELETE OWN ACCOUNT */
+
+.deleteOwn {
+    position: fixed;
+
+    right: 20px;
+    bottom: 20px;
+
+    background: #333;
+    color: white;
+
+    font-size: 13px;
+
+    padding: 10px 14px;
+
+    border-radius: 10px;
+}
+
+
+/* DELETE MOM ACCOUNT */
+
+.deleteMom {
+    background: #333;
+    color: white;
+
+    margin-top: 20px;
+}
+
+
+/* LOGOUT */
+
+.logout {
+    background: white;
+    color: #333;
+
+    margin-top: 25px;
+}
+
+
+/* MESSAGES */
+
+.message {
+    min-height: 20px;
+    font-weight: bold;
+}
+
+.error {
+    color: #B00000;
+}
+
+.success {
+    color: #006600;
+}
+
+
+/* HIDDEN */
+
+.hidden {
+    display: none !important;
+}
+
+
+/* MOBILE / IPAD */
+
+@media (max-width: 600px) {
+
+    body {
+        align-items: flex-start;
+    }
+
+    .app {
+        width: 100%;
+        padding: 18px;
+        margin-top: 20px;
+    }
+
+    h1 {
+        font-size: 32px;
+    }
+
+    h2 {
+        font-size: 24px;
+    }
+
+    .moneyContainer {
+        gap: 12px;
+    }
+
+    .moneyBox {
+        width: 100%;
+        max-width: 320px;
+    }
+
+    .actionButtons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .actionButtons button {
+        width: 90%;
+        max-width: 300px;
+    }
+
+    .account {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .accountInfo {
+        text-align: center;
+    }
+
+    .increase {
+        width: 100%;
+    }
+
+    .deleteOwn {
+        position: static;
+        margin-top: 20px;
+    }
+}
