@@ -1,6 +1,6 @@
 /* =========================================================
    MONEY SYSTEM
-   script.js
+   localStorage + file vouchers
 ========================================================= */
 
 
@@ -10,29 +10,44 @@
 
 const ADMIN_USERNAME = "mom";
 
+const STORAGE_KEY =
+    "moneySystemAccounts";
+
+const USED_VOUCHERS_KEY =
+    "moneySystemUsedVouchers";
+
 
 /* =========================================================
    STORAGE
 ========================================================= */
 
-const STORAGE_KEY = "moneySystemAccounts";
-
 let accounts =
     JSON.parse(
-        localStorage.getItem(STORAGE_KEY)
+        localStorage.getItem(
+            STORAGE_KEY
+        )
     ) || {};
+
+
+let usedVouchers =
+    JSON.parse(
+        localStorage.getItem(
+            USED_VOUCHERS_KEY
+        )
+    ) || {};
+
 
 let currentUser = null;
 
 
 /* =========================================================
-   MONEY PRECISION
+   MONEY
 ========================================================= */
 
 function moneyToCents(amount) {
 
     return Math.round(
-        amount * 100
+        Number(amount) * 100
     );
 
 }
@@ -49,6 +64,30 @@ function cleanMoney(amount) {
 
     return centsToMoney(
         moneyToCents(amount)
+    );
+
+}
+
+
+/* =========================================================
+   STORAGE FUNCTIONS
+========================================================= */
+
+function saveDatabase() {
+
+    localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify(accounts)
+    );
+
+}
+
+
+function saveUsedVouchers() {
+
+    localStorage.setItem(
+        USED_VOUCHERS_KEY,
+        JSON.stringify(usedVouchers)
     );
 
 }
@@ -78,7 +117,6 @@ const adminScreen =
         "adminScreen"
     );
 
-
 const loginUsername =
     document.getElementById(
         "loginUsername"
@@ -89,7 +127,6 @@ const loginPassword =
         "loginPassword"
     );
 
-
 const newUsername =
     document.getElementById(
         "newUsername"
@@ -99,7 +136,6 @@ const newPassword =
     document.getElementById(
         "newPassword"
     );
-
 
 const loginMessage =
     document.getElementById(
@@ -116,19 +152,10 @@ const userMessage =
         "userMessage"
     );
 
-
-/* =========================================================
-   STORAGE FUNCTIONS
-========================================================= */
-
-function saveDatabase() {
-
-    localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(accounts)
+const voucherFileInput =
+    document.getElementById(
+        "voucherFileInput"
     );
-
-}
 
 
 /* =========================================================
@@ -261,6 +288,7 @@ function createAccount() {
         "success"
     );
 
+
     createMessage.textContent =
         "Account created successfully!";
 
@@ -306,6 +334,8 @@ function login() {
         username.toLowerCase();
 
 
+    /* MOM */
+
     if (
         key ===
         ADMIN_USERNAME.toLowerCase()
@@ -315,15 +345,20 @@ function login() {
 
             accounts[key] = {
 
-                username: ADMIN_USERNAME,
+                username:
+                    ADMIN_USERNAME,
 
-                password: password,
+                password:
+                    password,
 
-                admin: true,
+                admin:
+                    true,
 
-                balance: 0,
+                balance:
+                    0,
 
-                saved: 0
+                saved:
+                    0
 
             };
 
@@ -362,6 +397,8 @@ function login() {
     }
 
 
+    /* NORMAL USER */
+
     if (!accounts[key]) {
 
         loginMessage.classList.add(
@@ -399,7 +436,7 @@ function login() {
 
 
 /* =========================================================
-   NORMAL USER PANEL
+   USER PANEL
 ========================================================= */
 
 function showUserPanel() {
@@ -467,7 +504,9 @@ function buyMoney() {
 
 
     const amount =
-        Number(input);
+        Number(
+            input.replace(",", ".")
+        );
 
 
     if (
@@ -490,6 +529,7 @@ function buyMoney() {
 
     const amountCents =
         moneyToCents(amount);
+
 
     const balanceCents =
         moneyToCents(
@@ -531,7 +571,7 @@ function buyMoney() {
 
 
 /* =========================================================
-   SAVE MONEY
+   SAVE
 ========================================================= */
 
 function saveMoney() {
@@ -548,7 +588,9 @@ function saveMoney() {
 
 
     const amount =
-        Number(input);
+        Number(
+            input.replace(",", ".")
+        );
 
 
     if (
@@ -572,10 +614,12 @@ function saveMoney() {
     const amountCents =
         moneyToCents(amount);
 
+
     const balanceCents =
         moneyToCents(
             account.balance
         );
+
 
     const savedCents =
         moneyToCents(
@@ -641,7 +685,9 @@ function withdrawMoney() {
 
 
     const amount =
-        Number(input);
+        Number(
+            input.replace(",", ".")
+        );
 
 
     if (
@@ -665,10 +711,12 @@ function withdrawMoney() {
     const amountCents =
         moneyToCents(amount);
 
+
     const savedCents =
         moneyToCents(
             account.saved
         );
+
 
     const balanceCents =
         moneyToCents(
@@ -779,7 +827,7 @@ function showAdminPanel() {
 
 
 /* =========================================================
-   REFRESH MOM ACCOUNT LIST
+   ACCOUNT LIST
 ========================================================= */
 
 function refreshAdminPanel() {
@@ -994,7 +1042,9 @@ function increaseBalance(key) {
 
 
     const amount =
-        Number(input);
+        Number(
+            input.replace(",", ".")
+        );
 
 
     if (
@@ -1106,7 +1156,7 @@ function deleteAccount(key) {
 
 
 /* =========================================================
-   USER DELETE OWN ACCOUNT
+   DELETE OWN ACCOUNT
 ========================================================= */
 
 function deleteOwnAccount() {
@@ -1126,7 +1176,7 @@ function deleteOwnAccount() {
             account.username +
             "'?\n\n" +
             "This will permanently delete " +
-            "your account, Balance and Saved money."
+            "your Balance and Saved money."
         );
 
 
@@ -1155,7 +1205,7 @@ function deleteOwnAccount() {
 
 
 /* =========================================================
-   MOM DELETE OWN ACCOUNT
+   DELETE MOM ACCOUNT
 ========================================================= */
 
 function deleteMomAccount() {
@@ -1170,9 +1220,7 @@ function deleteMomAccount() {
 
 
     if (!account.admin) {
-
         return;
-
     }
 
 
@@ -1209,6 +1257,467 @@ function deleteMomAccount() {
 
 
 /* =========================================================
+   VOUCHER ID
+========================================================= */
+
+function createVoucherID() {
+
+    if (
+        window.crypto &&
+        crypto.randomUUID
+    ) {
+
+        return crypto.randomUUID();
+
+    }
+
+
+    return (
+        Date.now().toString(36) +
+        "-" +
+        Math.random()
+            .toString(36)
+            .substring(2, 12)
+    );
+
+}
+
+
+/* =========================================================
+   CREATE MONEY VOUCHER
+========================================================= */
+
+function createMoneyVoucher() {
+
+    const input =
+        prompt(
+            "What amount should the voucher contain?"
+        );
+
+
+    if (input === null) {
+        return;
+    }
+
+
+    const amount =
+        Number(
+            input.replace(",", ".")
+        );
+
+
+    const amountCents =
+        moneyToCents(
+            amount
+        );
+
+
+    if (
+        !Number.isFinite(amount) ||
+        amountCents <= 0
+    ) {
+
+        alert(
+            "Enter a valid amount."
+        );
+
+        return;
+    }
+
+
+    const voucher = {
+
+        type:
+            "MONEY_SYSTEM_VOUCHER",
+
+        version:
+            1,
+
+        voucherId:
+            createVoucherID(),
+
+        amountCents:
+            amountCents,
+
+        redeemed:
+            false,
+
+        createdBy:
+            ADMIN_USERNAME,
+
+        createdAt:
+            new Date().toISOString()
+
+    };
+
+
+    const contents =
+        JSON.stringify(
+            voucher,
+            null,
+            2
+        );
+
+
+    const blob =
+        new Blob(
+            [
+                contents
+            ],
+            {
+                type:
+                    "application/json"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
+        document.createElement(
+            "a"
+        );
+
+
+    link.href =
+        url;
+
+
+    link.download =
+        "MoneyVoucher-" +
+        centsToMoney(
+            amountCents
+        ).toFixed(2) +
+        ".msv";
+
+
+    document.body.appendChild(
+        link
+    );
+
+
+    link.click();
+
+
+    link.remove();
+
+
+    URL.revokeObjectURL(
+        url
+    );
+
+
+    alert(
+        "🎟️ VOUCHER CREATED!\n\n" +
+        "Amount: €" +
+        centsToMoney(
+            amountCents
+        ).toFixed(2) +
+        "\n\n" +
+        "Send the .msv file to the person."
+    );
+
+}
+
+
+/* =========================================================
+   OPEN VOUCHER PICKER
+========================================================= */
+
+function openVoucherPicker() {
+
+    voucherFileInput.value = "";
+
+    voucherFileInput.click();
+
+}
+
+
+/* =========================================================
+   REDEEM VOUCHER
+========================================================= */
+
+async function redeemVoucherFromFile(event) {
+
+    const file =
+        event.target.files[0];
+
+
+    if (!file) {
+        return;
+    }
+
+
+    try {
+
+        const text =
+            await file.text();
+
+
+        const voucher =
+            JSON.parse(
+                text
+            );
+
+
+        /* CHECK FORMAT */
+
+        if (
+            voucher.type !==
+            "MONEY_SYSTEM_VOUCHER"
+        ) {
+
+            throw new Error(
+                "Invalid voucher."
+            );
+        }
+
+
+        if (
+            voucher.version !== 1
+        ) {
+
+            throw new Error(
+                "Unsupported voucher version."
+            );
+        }
+
+
+        /* CHECK ID */
+
+        if (
+            !voucher.voucherId
+        ) {
+
+            throw new Error(
+                "Voucher has no ID."
+            );
+        }
+
+
+        /* CHECK AMOUNT */
+
+        const amountCents =
+            Number(
+                voucher.amountCents
+            );
+
+
+        if (
+            !Number.isInteger(
+                amountCents
+            ) ||
+            amountCents <= 0
+        ) {
+
+            throw new Error(
+                "Invalid voucher amount."
+            );
+        }
+
+
+        /* CHECK REDEEMED FLAG */
+
+        if (
+            voucher.redeemed === true
+        ) {
+
+            showUserMessage(
+                "🚨 VOUCHER ALREADY REDEEMED!",
+                true
+            );
+
+            return;
+        }
+
+
+        /* CHECK LOCAL USED LIST */
+
+        if (
+            usedVouchers[
+                voucher.voucherId
+            ]
+        ) {
+
+            showUserMessage(
+                "🚨 VOUCHER ALREADY USED!",
+                true
+            );
+
+            return;
+        }
+
+
+        /* SHOW CONFIRMATION */
+
+        const confirmed =
+            confirm(
+                "🎟️ MONEY VOUCHER\n\n" +
+                "Amount: €" +
+                centsToMoney(
+                    amountCents
+                ).toFixed(2) +
+                "\n\n" +
+                "Redeem this voucher?"
+            );
+
+
+        if (!confirmed) {
+            return;
+        }
+
+
+        /* ADD MONEY */
+
+        const account =
+            accounts[currentUser];
+
+
+        const balanceCents =
+            moneyToCents(
+                account.balance
+            );
+
+
+        account.balance =
+            centsToMoney(
+                balanceCents +
+                amountCents
+            );
+
+
+        /* MARK USED LOCALLY */
+
+        usedVouchers[
+            voucher.voucherId
+        ] = {
+
+            amountCents:
+                amountCents,
+
+            redeemedAt:
+                new Date().toISOString()
+
+        };
+
+
+        saveDatabase();
+
+        saveUsedVouchers();
+
+
+        /*
+           CHANGE THE ACTUAL VOUCHER
+           TO REDEEMED = TRUE
+        */
+
+        voucher.redeemed =
+            true;
+
+
+        voucher.redeemedBy =
+            account.username;
+
+
+        voucher.redeemedAt =
+            new Date().toISOString();
+
+
+        const redeemedContents =
+            JSON.stringify(
+                voucher,
+                null,
+                2
+            );
+
+
+        const redeemedBlob =
+            new Blob(
+                [
+                    redeemedContents
+                ],
+                {
+                    type:
+                        "application/json"
+                }
+            );
+
+
+        const redeemedURL =
+            URL.createObjectURL(
+                redeemedBlob
+            );
+
+
+        const redeemedLink =
+            document.createElement(
+                "a"
+            );
+
+
+        redeemedLink.href =
+            redeemedURL;
+
+
+        redeemedLink.download =
+            "REDEEMED-MoneyVoucher-" +
+            centsToMoney(
+                amountCents
+            ).toFixed(2) +
+            ".msv";
+
+
+        document.body.appendChild(
+            redeemedLink
+        );
+
+
+        redeemedLink.click();
+
+
+        redeemedLink.remove();
+
+
+        URL.revokeObjectURL(
+            redeemedURL
+        );
+
+
+        updateUserDisplay();
+
+
+        showUserMessage(
+            "💰 €" +
+            centsToMoney(
+                amountCents
+            ).toFixed(2) +
+            " ADDED!"
+        );
+
+
+    } catch (error) {
+
+        console.error(
+            "Voucher error:",
+            error
+        );
+
+
+        showUserMessage(
+            "🚨 INVALID VOUCHER FILE!",
+            true
+        );
+
+    }
+
+}
+
+
+/* =========================================================
    LOGOUT
 ========================================================= */
 
@@ -1230,11 +1739,13 @@ function logout() {
 
 
 /* =========================================================
-   BUTTON CONNECTIONS
+   BUTTONS
 ========================================================= */
 
 document
-    .getElementById("loginButton")
+    .getElementById(
+        "loginButton"
+    )
     .addEventListener(
         "click",
         login
@@ -1242,7 +1753,9 @@ document
 
 
 document
-    .getElementById("showCreateButton")
+    .getElementById(
+        "showCreateButton"
+    )
     .addEventListener(
         "click",
         showCreateAccount
@@ -1250,7 +1763,9 @@ document
 
 
 document
-    .getElementById("createButton")
+    .getElementById(
+        "createButton"
+    )
     .addEventListener(
         "click",
         createAccount
@@ -1258,7 +1773,9 @@ document
 
 
 document
-    .getElementById("backToLoginButton")
+    .getElementById(
+        "backToLoginButton"
+    )
     .addEventListener(
         "click",
         showLogin
@@ -1266,7 +1783,9 @@ document
 
 
 document
-    .getElementById("buyButton")
+    .getElementById(
+        "buyButton"
+    )
     .addEventListener(
         "click",
         buyMoney
@@ -1274,7 +1793,9 @@ document
 
 
 document
-    .getElementById("saveButton")
+    .getElementById(
+        "saveButton"
+    )
     .addEventListener(
         "click",
         saveMoney
@@ -1282,7 +1803,9 @@ document
 
 
 document
-    .getElementById("withdrawButton")
+    .getElementById(
+        "withdrawButton"
+    )
     .addEventListener(
         "click",
         withdrawMoney
@@ -1290,7 +1813,9 @@ document
 
 
 document
-    .getElementById("userLogoutButton")
+    .getElementById(
+        "userLogoutButton"
+    )
     .addEventListener(
         "click",
         logout
@@ -1298,7 +1823,9 @@ document
 
 
 document
-    .getElementById("adminLogoutButton")
+    .getElementById(
+        "adminLogoutButton"
+    )
     .addEventListener(
         "click",
         logout
@@ -1306,7 +1833,9 @@ document
 
 
 document
-    .getElementById("deleteOwnAccountButton")
+    .getElementById(
+        "deleteOwnAccountButton"
+    )
     .addEventListener(
         "click",
         deleteOwnAccount
@@ -1314,15 +1843,43 @@ document
 
 
 document
-    .getElementById("deleteMomButton")
+    .getElementById(
+        "deleteMomButton"
+    )
     .addEventListener(
         "click",
         deleteMomAccount
     );
 
 
+document
+    .getElementById(
+        "createVoucherButton"
+    )
+    .addEventListener(
+        "click",
+        createMoneyVoucher
+    );
+
+
+document
+    .getElementById(
+        "redeemVoucherButton"
+    )
+    .addEventListener(
+        "click",
+        openVoucherPicker
+    );
+
+
+voucherFileInput.addEventListener(
+    "change",
+    redeemVoucherFromFile
+);
+
+
 /* =========================================================
-   ENTER KEY LOGIN
+   ENTER KEY
 ========================================================= */
 
 loginPassword.addEventListener(
@@ -1335,6 +1892,23 @@ loginPassword.addEventListener(
         ) {
 
             login();
+
+        }
+
+    }
+);
+
+
+newPassword.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            event.key ===
+            "Enter"
+        ) {
+
+            createAccount();
 
         }
 
