@@ -1,6 +1,6 @@
 /* =========================================================
    MONEY SYSTEM
-   localStorage + file vouchers
+   localStorage + file vouchers + savings goals
 ========================================================= */
 
 
@@ -70,7 +70,7 @@ function cleanMoney(amount) {
 
 
 /* =========================================================
-   STORAGE FUNCTIONS
+   STORAGE
 ========================================================= */
 
 function saveDatabase() {
@@ -94,6 +94,268 @@ function saveUsedVouchers() {
 
 
 /* =========================================================
+   ACCOUNT MIGRATION
+========================================================= */
+
+/*
+   Older accounts only had:
+
+       saved: 2.54
+
+   New accounts have:
+
+       saved: 2.54
+       safety: 2.54
+       goals: []
+
+   This function converts old accounts automatically.
+*/
+
+function migrateAccounts() {
+
+    let changed = false;
+
+
+    for (
+        const key in accounts
+    ) {
+
+        const account =
+            accounts[key];
+
+
+        if (
+            typeof account.safety !==
+            "number"
+        ) {
+
+            account.safety =
+                typeof account.saved ===
+                "number"
+                    ? account.saved
+                    : 0;
+
+            changed = true;
+
+        }
+
+
+        if (
+            !Array.isArray(
+                account.goals
+            )
+        ) {
+
+            account.goals = [];
+
+            changed = true;
+
+        }
+
+
+        if (
+            typeof account.activeGoalId ===
+            "undefined"
+        ) {
+
+            account.activeGoalId = null;
+
+            changed = true;
+
+        }
+
+
+        if (
+            typeof account.saved !==
+            "number"
+        ) {
+
+            account.saved = 0;
+
+            changed = true;
+
+        }
+
+    }
+
+
+    if (changed) {
+
+        saveDatabase();
+
+    }
+
+}
+
+
+migrateAccounts();
+
+
+/* =========================================================
+   SAVINGS HELPERS
+========================================================= */
+
+function getSafetyCents(account) {
+
+    return moneyToCents(
+        account.safety || 0
+    );
+
+}
+
+
+function getGoalCents(goal) {
+
+    return moneyToCents(
+        goal.amount || 0
+    );
+
+}
+
+
+function getGoalTargetCents(goal) {
+
+    return moneyToCents(
+        goal.target || 0
+    );
+
+}
+
+
+function getTotalSavedCents(account) {
+
+    let total =
+        getSafetyCents(
+            account
+        );
+
+
+    if (
+        Array.isArray(
+            account.goals
+        )
+    ) {
+
+        for (
+            const goal of account.goals
+        ) {
+
+            total +=
+                getGoalCents(
+                    goal
+                );
+
+        }
+
+    }
+
+
+    return total;
+
+}
+
+
+function updateSavedCompatibilityValue(
+    account
+) {
+
+    account.saved =
+        centsToMoney(
+            getTotalSavedCents(
+                account
+            )
+        );
+
+}
+
+
+/* =========================================================
+   ACTIVE GOAL
+========================================================= */
+
+function getActiveGoal(account) {
+
+    if (
+        !account.activeGoalId ||
+        !Array.isArray(
+            account.goals
+        )
+    ) {
+
+        return null;
+
+    }
+
+
+    return (
+        account.goals.find(
+            function(goal) {
+
+                return (
+                    goal.id ===
+                    account.activeGoalId
+                );
+
+            }
+        ) || null
+    );
+
+}
+
+
+function getGoalProgress(goal) {
+
+    if (!goal) {
+        return 0;
+    }
+
+
+    const target =
+        getGoalTargetCents(
+            goal
+        );
+
+
+    if (target <= 0) {
+        return 0;
+    }
+
+
+    const amount =
+        getGoalCents(
+            goal
+        );
+
+
+    return Math.min(
+        100,
+        Math.floor(
+            (
+                amount /
+                target
+            ) * 100
+        )
+    );
+
+}
+
+
+function isGoalComplete(goal) {
+
+    if (!goal) {
+        return false;
+    }
+
+
+    return (
+        getGoalCents(goal) >=
+        getGoalTargetCents(goal)
+    );
+
+}
+
+
+/* =========================================================
    ELEMENTS
 ========================================================= */
 
@@ -102,59 +364,76 @@ const loginScreen =
         "loginScreen"
     );
 
+
 const createScreen =
     document.getElementById(
         "createScreen"
     );
+
 
 const userScreen =
     document.getElementById(
         "userScreen"
     );
 
+
 const adminScreen =
     document.getElementById(
         "adminScreen"
     );
+
 
 const loginUsername =
     document.getElementById(
         "loginUsername"
     );
 
+
 const loginPassword =
     document.getElementById(
         "loginPassword"
     );
+
 
 const newUsername =
     document.getElementById(
         "newUsername"
     );
 
+
 const newPassword =
     document.getElementById(
         "newPassword"
     );
+
 
 const loginMessage =
     document.getElementById(
         "loginMessage"
     );
 
+
 const createMessage =
     document.getElementById(
         "createMessage"
     );
+
 
 const userMessage =
     document.getElementById(
         "userMessage"
     );
 
+
 const voucherFileInput =
     document.getElementById(
         "voucherFileInput"
+    );
+
+
+const savedBox =
+    document.querySelector(
+        ".savedBox"
     );
 
 
@@ -213,6 +492,7 @@ function createAccount() {
 
     const username =
         newUsername.value.trim();
+
 
     const password =
         newPassword.value;
@@ -276,7 +556,13 @@ function createAccount() {
 
         balance: 0,
 
-        saved: 0
+        saved: 0,
+
+        safety: 0,
+
+        goals: [],
+
+        activeGoalId: null
 
     };
 
@@ -308,6 +594,7 @@ function login() {
 
     const username =
         loginUsername.value.trim();
+
 
     const password =
         loginPassword.value;
@@ -358,7 +645,16 @@ function login() {
                     0,
 
                 saved:
-                    0
+                    0,
+
+                safety:
+                    0,
+
+                goals:
+                    [],
+
+                activeGoalId:
+                    null
 
             };
 
@@ -458,6 +754,11 @@ function updateUserDisplay() {
         accounts[currentUser];
 
 
+    if (!account) {
+        return;
+    }
+
+
     document.getElementById(
         "welcomeText"
     ).textContent =
@@ -475,13 +776,2142 @@ function updateUserDisplay() {
         ).toFixed(2);
 
 
-    document.getElementById(
-        "savedValue"
-    ).textContent =
+    updateSavedDisplay();
+
+
+    updateSavedBoxClick();
+
+}
+
+
+/* =========================================================
+   SAVED BOX DISPLAY
+========================================================= */
+
+function updateSavedDisplay() {
+
+    const account =
+        accounts[currentUser];
+
+
+    if (!account) {
+        return;
+    }
+
+
+    const savedElement =
+        document.getElementById(
+            "savedValue"
+        );
+
+
+    const totalSaved =
+        getTotalSavedCents(
+            account
+        );
+
+
+    savedElement.textContent =
         "€" +
-        cleanMoney(
-            account.saved
+        centsToMoney(
+            totalSaved
         ).toFixed(2);
+
+
+    updateSavedBoxPreview();
+
+}
+
+
+/* =========================================================
+   SAVED BOX PREVIEW
+========================================================= */
+
+function updateSavedBoxPreview() {
+
+    const account =
+        accounts[currentUser];
+
+
+    if (!account) {
+        return;
+    }
+
+
+    const box =
+        savedBox;
+
+
+    if (!box) {
+        return;
+    }
+
+
+    const oldPreview =
+        box.querySelector(
+            ".savedPreview"
+        );
+
+
+    if (oldPreview) {
+
+        oldPreview.remove();
+
+    }
+
+
+    const preview =
+        document.createElement(
+            "div"
+        );
+
+
+    preview.className =
+        "savedPreview";
+
+
+    const activeGoal =
+        getActiveGoal(
+            account
+        );
+
+
+    const safety =
+        getSafetyCents(
+            account
+        );
+
+
+    if (activeGoal) {
+
+        const goalLine =
+            document.createElement(
+                "div"
+            );
+
+
+        goalLine.textContent =
+            "🎯 " +
+            activeGoal.name;
+
+
+        const progressLine =
+            document.createElement(
+                "div"
+            );
+
+
+        progressLine.textContent =
+            "€" +
+            centsToMoney(
+                getGoalCents(
+                    activeGoal
+                )
+            ).toFixed(2) +
+            " / €" +
+            centsToMoney(
+                getGoalTargetCents(
+                    activeGoal
+                )
+            ).toFixed(2) +
+            " • " +
+            getGoalProgress(
+                activeGoal
+            ) +
+            "%";
+
+
+        preview.appendChild(
+            goalLine
+        );
+
+        preview.appendChild(
+            progressLine
+        );
+
+    } else {
+
+        const noGoal =
+            document.createElement(
+                "div"
+            );
+
+
+        noGoal.textContent =
+            "🎯 No active goal";
+
+
+        preview.appendChild(
+            noGoal
+        );
+
+    }
+
+
+    const safetyLine =
+        document.createElement(
+            "div"
+        );
+
+
+    safetyLine.textContent =
+        "🛡️ Safety: €" +
+        centsToMoney(
+            safety
+        ).toFixed(2);
+
+
+    preview.appendChild(
+        safetyLine
+    );
+
+
+    box.appendChild(
+        preview
+    );
+
+}
+
+
+/* =========================================================
+   SAVED BOX CLICK
+========================================================= */
+
+function updateSavedBoxClick() {
+
+    if (!savedBox) {
+        return;
+    }
+
+
+    savedBox.style.cursor =
+        "pointer";
+
+
+    savedBox.title =
+        "Open Savings";
+
+
+    savedBox.onclick =
+        openSavingsMenu;
+
+}
+
+
+/* =========================================================
+   SAVINGS MENU
+========================================================= */
+
+function openSavingsMenu() {
+
+    const account =
+        accounts[currentUser];
+
+
+    if (!account) {
+        return;
+    }
+
+
+    const overlay =
+        createModal(
+            "🏦 SAVINGS"
+        );
+
+
+    const total =
+        document.createElement(
+            "div"
+        );
+
+
+    total.className =
+        "savingsMenuTotal";
+
+
+    total.textContent =
+        "Total Saved: €" +
+        centsToMoney(
+            getTotalSavedCents(
+                account
+            )
+        ).toFixed(2);
+
+
+    overlay.content.appendChild(
+        total
+    );
+
+
+    const safety =
+        document.createElement(
+            "div"
+        );
+
+
+    safety.className =
+        "savingsMenuCard";
+
+
+    safety.innerHTML =
+        "<strong>🛡️ Safety Account</strong>" +
+        "<br>€" +
+        centsToMoney(
+            getSafetyCents(
+                account
+            )
+        ).toFixed(2);
+
+
+    overlay.content.appendChild(
+        safety
+    );
+
+
+    const goalsTitle =
+        document.createElement(
+            "h3"
+        );
+
+
+    goalsTitle.textContent =
+        "🎯 GOALS";
+
+
+    overlay.content.appendChild(
+        goalsTitle
+    );
+
+
+    if (
+        account.goals.length ===
+        0
+    ) {
+
+        const none =
+            document.createElement(
+                "p"
+            );
+
+
+        none.textContent =
+            "You don't have any goals yet.";
+
+
+        overlay.content.appendChild(
+            none
+        );
+
+    } else {
+
+        for (
+            const goal of account.goals
+        ) {
+
+            const card =
+                createGoalCard(
+                    account,
+                    goal,
+                    true
+                );
+
+
+            overlay.content.appendChild(
+                card
+            );
+
+        }
+
+    }
+
+
+    const createGoalButton =
+        createModalButton(
+            "➕ CREATE GOAL",
+            function() {
+
+                closeModal(
+                    overlay
+                );
+
+                createGoal();
+
+            }
+        );
+
+
+    overlay.content.appendChild(
+        createGoalButton
+    );
+
+
+    if (
+        account.goals.length > 0
+    ) {
+
+        const changeActiveButton =
+            createModalButton(
+                "⭐ CHANGE ACTIVE GOAL",
+                function() {
+
+                    closeModal(
+                        overlay
+                    );
+
+                    chooseActiveGoal();
+
+                }
+            );
+
+
+        overlay.content.appendChild(
+            changeActiveButton
+        );
+
+    }
+
+
+    const closeButton =
+        createModalButton(
+            "CLOSE",
+            function() {
+
+                closeModal(
+                    overlay
+                );
+
+            }
+        );
+
+
+    overlay.content.appendChild(
+        closeButton
+    );
+
+}
+
+
+/* =========================================================
+   CREATE MODAL
+========================================================= */
+
+function createModal(title) {
+
+    const overlay =
+        document.createElement(
+            "div"
+        );
+
+
+    overlay.className =
+        "moneySystemModal";
+
+
+    overlay.style.position =
+        "fixed";
+
+
+    overlay.style.inset =
+        "0";
+
+
+    overlay.style.background =
+        "rgba(0,0,0,0.65)";
+
+
+    overlay.style.display =
+        "flex";
+
+
+    overlay.style.alignItems =
+        "center";
+
+
+    overlay.style.justifyContent =
+        "center";
+
+
+    overlay.style.zIndex =
+        "9999";
+
+
+    const panel =
+        document.createElement(
+            "div"
+        );
+
+
+    panel.className =
+        "moneySystemModalPanel";
+
+
+    panel.style.background =
+        "white";
+
+
+    panel.style.color =
+        "#111";
+
+
+    panel.style.width =
+        "min(92vw, 500px)";
+
+
+    panel.style.maxHeight =
+        "88vh";
+
+
+    panel.style.overflowY =
+        "auto";
+
+
+    panel.style.borderRadius =
+        "20px";
+
+
+    panel.style.padding =
+        "22px";
+
+
+    panel.style.boxSizing =
+        "border-box";
+
+
+    const heading =
+        document.createElement(
+            "h2"
+        );
+
+
+    heading.textContent =
+        title;
+
+
+    panel.appendChild(
+        heading
+    );
+
+
+    const content =
+        document.createElement(
+            "div"
+        );
+
+
+    content.className =
+        "moneySystemModalContent";
+
+
+    panel.appendChild(
+        content
+    );
+
+
+    overlay.appendChild(
+        panel
+    );
+
+
+    document.body.appendChild(
+        overlay
+    );
+
+
+    overlay.content =
+        content;
+
+
+    overlay.panel =
+        panel;
+
+
+    return overlay;
+
+}
+
+
+/* =========================================================
+   CLOSE MODAL
+========================================================= */
+
+function closeModal(overlay) {
+
+    if (
+        overlay &&
+        overlay.parentNode
+    ) {
+
+        overlay.remove();
+
+    }
+
+}
+
+
+/* =========================================================
+   MODAL BUTTON
+========================================================= */
+
+function createModalButton(
+    text,
+    action
+) {
+
+    const button =
+        document.createElement(
+            "button"
+        );
+
+
+    button.textContent =
+        text;
+
+
+    button.style.display =
+        "block";
+
+
+    button.style.width =
+        "100%";
+
+
+    button.style.margin =
+        "10px 0";
+
+
+    button.style.padding =
+        "14px";
+
+
+    button.style.borderRadius =
+        "12px";
+
+
+    button.style.border =
+        "none";
+
+
+    button.style.cursor =
+        "pointer";
+
+
+    button.style.fontSize =
+        "16px";
+
+
+    button.addEventListener(
+        "click",
+        action
+    );
+
+
+    return button;
+
+}
+
+
+/* =========================================================
+   GOAL CARD
+========================================================= */
+
+function createGoalCard(
+    account,
+    goal,
+    showActions
+) {
+
+    const card =
+        document.createElement(
+            "div"
+        );
+
+
+    card.className =
+        "savingsGoalCard";
+
+
+    card.style.border =
+        "1px solid #ddd";
+
+
+    card.style.borderRadius =
+        "14px";
+
+
+    card.style.padding =
+        "14px";
+
+
+    card.style.marginBottom =
+        "12px";
+
+
+    const isActive =
+        account.activeGoalId ===
+        goal.id;
+
+
+    const amount =
+        getGoalCents(
+            goal
+        );
+
+
+    const target =
+        getGoalTargetCents(
+            goal
+        );
+
+
+    const progress =
+        getGoalProgress(
+            goal
+        );
+
+
+    const title =
+        document.createElement(
+            "div"
+        );
+
+
+    title.style.fontWeight =
+        "bold";
+
+
+    title.style.fontSize =
+        "18px";
+
+
+    title.textContent =
+        "🎯 " +
+        goal.name;
+
+
+    if (isActive) {
+
+        title.textContent +=
+            " ⭐ ACTIVE";
+
+    }
+
+
+    card.appendChild(
+        title
+    );
+
+
+    const amountText =
+        document.createElement(
+            "div"
+        );
+
+
+    amountText.textContent =
+        "€" +
+        centsToMoney(
+            amount
+        ).toFixed(2) +
+        " / €" +
+        centsToMoney(
+            target
+        ).toFixed(2) +
+        " • " +
+        progress +
+        "%";
+
+
+    card.appendChild(
+        amountText
+    );
+
+
+    const progressOuter =
+        document.createElement(
+            "div"
+        );
+
+
+    progressOuter.style.width =
+        "100%";
+
+
+    progressOuter.style.height =
+        "12px";
+
+
+    progressOuter.style.background =
+        "#ddd";
+
+
+    progressOuter.style.borderRadius =
+        "10px";
+
+
+    progressOuter.style.margin =
+        "10px 0";
+
+
+    progressOuter.style.overflow =
+        "hidden";
+
+
+    const progressInner =
+        document.createElement(
+            "div"
+        );
+
+
+    progressInner.style.width =
+        progress +
+        "%";
+
+
+    progressInner.style.height =
+        "100%";
+
+
+    progressInner.style.background =
+        "#4CAF50";
+
+
+    progressOuter.appendChild(
+        progressInner
+    );
+
+
+    card.appendChild(
+        progressOuter
+    );
+
+
+    if (
+        isGoalComplete(goal)
+    ) {
+
+        const complete =
+            document.createElement(
+                "div"
+            );
+
+
+        complete.textContent =
+            "🏆 GOAL COMPLETE";
+
+
+        complete.style.fontWeight =
+            "bold";
+
+
+        card.appendChild(
+            complete
+        );
+
+    }
+
+
+    if (showActions) {
+
+        const buttonRow =
+            document.createElement(
+                "div"
+            );
+
+
+        buttonRow.style.display =
+            "flex";
+
+
+        buttonRow.style.gap =
+            "8px";
+
+
+        buttonRow.style.flexWrap =
+            "wrap";
+
+
+        if (!isActive) {
+
+            const activate =
+                createModalButton(
+                    "⭐ MAKE ACTIVE",
+                    function() {
+
+                        account.activeGoalId =
+                            goal.id;
+
+
+                        saveDatabase();
+
+                        closeAllModals();
+
+                        updateUserDisplay();
+
+                        openSavingsMenu();
+
+                    }
+                );
+
+
+            activate.style.flex =
+                "1";
+
+
+            buttonRow.appendChild(
+                activate
+            );
+
+        }
+
+
+        const deleteButton =
+            createModalButton(
+                "🗑️ DELETE",
+                function() {
+
+                    deleteGoal(
+                        account,
+                        goal.id
+                    );
+
+                }
+            );
+
+
+        deleteButton.style.flex =
+            "1";
+
+
+        buttonRow.appendChild(
+            deleteButton
+        );
+
+
+        card.appendChild(
+            buttonRow
+        );
+
+    }
+
+
+    return card;
+
+}
+
+
+/* =========================================================
+   CLOSE ALL MODALS
+========================================================= */
+
+function closeAllModals() {
+
+    document
+        .querySelectorAll(
+            ".moneySystemModal"
+        )
+        .forEach(
+            function(modal) {
+
+                modal.remove();
+
+            }
+        );
+
+}
+
+
+/* =========================================================
+   CREATE GOAL
+========================================================= */
+
+function createGoal() {
+
+    const account =
+        accounts[currentUser];
+
+
+    const name =
+        prompt(
+            "What is the name of your goal?"
+        );
+
+
+    if (
+        name === null
+    ) {
+
+        return;
+
+    }
+
+
+    const cleanName =
+        name.trim();
+
+
+    if (!cleanName) {
+
+        showUserMessage(
+            "Enter a goal name.",
+            true
+        );
+
+        return;
+
+    }
+
+
+    const targetInput =
+        prompt(
+            "How much money do you need for this goal?"
+        );
+
+
+    if (
+        targetInput === null
+    ) {
+
+        return;
+
+    }
+
+
+    const target =
+        Number(
+            targetInput.replace(
+                ",",
+                "."
+            )
+        );
+
+
+    const targetCents =
+        moneyToCents(
+            target
+        );
+
+
+    if (
+        !Number.isFinite(target) ||
+        targetCents <= 0
+    ) {
+
+        showUserMessage(
+            "Enter a valid target amount.",
+            true
+        );
+
+        return;
+
+    }
+
+
+    const goal = {
+
+        id:
+            createGoalID(),
+
+        name:
+            cleanName,
+
+        target:
+            centsToMoney(
+                targetCents
+            ),
+
+        amount:
+            0,
+
+        createdAt:
+            new Date().toISOString()
+
+    };
+
+
+    account.goals.push(
+        goal
+    );
+
+
+    /*
+       If there isn't an active goal,
+       the first goal automatically
+       becomes active.
+    */
+
+    if (
+        !account.activeGoalId
+    ) {
+
+        account.activeGoalId =
+            goal.id;
+
+    }
+
+
+    updateSavedCompatibilityValue(
+        account
+    );
+
+
+    saveDatabase();
+
+
+    updateUserDisplay();
+
+
+    showUserMessage(
+        "🎯 Goal created!"
+    );
+
+
+    openSavingsMenu();
+
+}
+
+
+/* =========================================================
+   GOAL ID
+========================================================= */
+
+function createGoalID() {
+
+    if (
+        window.crypto &&
+        crypto.randomUUID
+    ) {
+
+        return crypto.randomUUID();
+
+    }
+
+
+    return (
+        Date.now().toString(36) +
+        "-" +
+        Math.random()
+            .toString(36)
+            .substring(2, 12)
+    );
+
+}
+
+
+/* =========================================================
+   CHOOSE ACTIVE GOAL
+========================================================= */
+
+function chooseActiveGoal() {
+
+    const account =
+        accounts[currentUser];
+
+
+    if (
+        account.goals.length ===
+        0
+    ) {
+
+        showUserMessage(
+            "You don't have any goals yet.",
+            true
+        );
+
+        return;
+
+    }
+
+
+    const overlay =
+        createModal(
+            "⭐ CHOOSE ACTIVE GOAL"
+        );
+
+
+    for (
+        const goal of account.goals
+    ) {
+
+        const button =
+            createModalButton(
+                (
+                    account.activeGoalId ===
+                    goal.id
+                        ? "⭐ "
+                        : "🎯 "
+                ) +
+                goal.name +
+                " — " +
+                getGoalProgress(
+                    goal
+                ) +
+                "%",
+                function() {
+
+                    account.activeGoalId =
+                        goal.id;
+
+
+                    saveDatabase();
+
+                    closeModal(
+                        overlay
+                    );
+
+                    updateUserDisplay();
+
+                    showUserMessage(
+                        "⭐ Active goal changed!"
+                    );
+
+                }
+            );
+
+
+        overlay.content.appendChild(
+            button
+        );
+
+    }
+
+
+    const closeButton =
+        createModalButton(
+            "CLOSE",
+            function() {
+
+                closeModal(
+                    overlay
+                );
+
+            }
+        );
+
+
+    overlay.content.appendChild(
+        closeButton
+    );
+
+}
+
+
+/* =========================================================
+   DELETE GOAL
+========================================================= */
+
+function deleteGoal(
+    account,
+    goalId
+) {
+
+    const goal =
+        account.goals.find(
+            function(item) {
+
+                return (
+                    item.id ===
+                    goalId
+                );
+
+            }
+        );
+
+
+    if (!goal) {
+        return;
+    }
+
+
+    const goalAmount =
+        getGoalCents(
+            goal
+        );
+
+
+    if (
+        goalAmount > 0
+    ) {
+
+        showUserMessage(
+            "You can't delete a goal containing money.",
+            true
+        );
+
+        return;
+
+    }
+
+
+    const confirmed =
+        confirm(
+            "Delete the goal '" +
+            goal.name +
+            "'?"
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    account.goals =
+        account.goals.filter(
+            function(item) {
+
+                return (
+                    item.id !==
+                    goalId
+                );
+
+            }
+        );
+
+
+    if (
+        account.activeGoalId ===
+        goalId
+    ) {
+
+        if (
+            account.goals.length >
+            0
+        ) {
+
+            account.activeGoalId =
+                account.goals[0].id;
+
+        } else {
+
+            account.activeGoalId =
+                null;
+
+        }
+
+    }
+
+
+    saveDatabase();
+
+    updateUserDisplay();
+
+    closeAllModals();
+
+    openSavingsMenu();
+
+}
+
+
+/* =========================================================
+   SAVE MONEY
+========================================================= */
+
+function saveMoney() {
+
+    const account =
+        accounts[currentUser];
+
+
+    const overlay =
+        createModal(
+            "🟢 SAVE MONEY"
+        );
+
+
+    const text =
+        document.createElement(
+            "p"
+        );
+
+
+    text.textContent =
+        "Where do you want to save the money?";
+
+
+    overlay.content.appendChild(
+        text
+    );
+
+
+    const activeGoal =
+        getActiveGoal(
+            account
+        );
+
+
+    if (activeGoal) {
+
+        const goalButton =
+            createModalButton(
+                "🎯 " +
+                activeGoal.name,
+                function() {
+
+                    closeModal(
+                        overlay
+                    );
+
+                    saveToActiveGoal();
+
+                }
+            );
+
+
+        overlay.content.appendChild(
+            goalButton
+        );
+
+    } else {
+
+        const noGoal =
+            document.createElement(
+                "p"
+            );
+
+
+        noGoal.textContent =
+            "You don't have an active goal.";
+
+
+        overlay.content.appendChild(
+            noGoal
+        );
+
+    }
+
+
+    const safetyButton =
+        createModalButton(
+            "🛡️ SAFETY ACCOUNT",
+            function() {
+
+                closeModal(
+                    overlay
+                );
+
+                saveToSafety();
+
+            }
+        );
+
+
+    overlay.content.appendChild(
+        safetyButton
+    );
+
+
+    const closeButton =
+        createModalButton(
+            "CANCEL",
+            function() {
+
+                closeModal(
+                    overlay
+                );
+
+            }
+        );
+
+
+    overlay.content.appendChild(
+        closeButton
+    );
+
+}
+
+
+/* =========================================================
+   SAVE TO SAFETY
+========================================================= */
+
+function saveToSafety() {
+
+    const account =
+        accounts[currentUser];
+
+
+    const input =
+        prompt(
+            "How much do you want to save to the Safety Account?"
+        );
+
+
+    if (
+        input === null
+    ) {
+
+        return;
+
+    }
+
+
+    const amount =
+        Number(
+            input.replace(
+                ",",
+                "."
+            )
+        );
+
+
+    const amountCents =
+        moneyToCents(
+            amount
+        );
+
+
+    if (
+        !Number.isFinite(amount) ||
+        amountCents <= 0
+    ) {
+
+        showUserMessage(
+            "Enter a valid amount.",
+            true
+        );
+
+        return;
+
+    }
+
+
+    const balanceCents =
+        moneyToCents(
+            account.balance
+        );
+
+
+    if (
+        amountCents >
+        balanceCents
+    ) {
+
+        showUserMessage(
+            "🚨 INSUFFICIENT FUNDS!",
+            true
+        );
+
+        return;
+
+    }
+
+
+    account.balance =
+        centsToMoney(
+            balanceCents -
+            amountCents
+        );
+
+
+    account.safety =
+        centsToMoney(
+            getSafetyCents(
+                account
+            ) +
+            amountCents
+        );
+
+
+    updateSavedCompatibilityValue(
+        account
+    );
+
+
+    saveDatabase();
+
+    updateUserDisplay();
+
+
+    showUserMessage(
+        "🛡️ Money saved to Safety Account!"
+    );
+
+}
+
+
+/* =========================================================
+   SAVE TO ACTIVE GOAL
+========================================================= */
+
+function saveToActiveGoal() {
+
+    const account =
+        accounts[currentUser];
+
+
+    const goal =
+        getActiveGoal(
+            account
+        );
+
+
+    if (!goal) {
+
+        showUserMessage(
+            "You don't have an active goal.",
+            true
+        );
+
+        return;
+
+    }
+
+
+    if (
+        isGoalComplete(
+            goal
+        )
+    ) {
+
+        showUserMessage(
+            "🏆 This goal is already complete!",
+            true
+        );
+
+        return;
+
+    }
+
+
+    const remainingCents =
+        getGoalTargetCents(
+            goal
+        ) -
+        getGoalCents(
+            goal
+        );
+
+
+    const input =
+        prompt(
+            "How much do you want to save toward '" +
+            goal.name +
+            "'?\n\n" +
+            "Remaining: €" +
+            centsToMoney(
+                remainingCents
+            ).toFixed(2)
+        );
+
+
+    if (
+        input === null
+    ) {
+
+        return;
+
+    }
+
+
+    const amount =
+        Number(
+            input.replace(
+                ",",
+                "."
+            )
+        );
+
+
+    const amountCents =
+        moneyToCents(
+            amount
+        );
+
+
+    if (
+        !Number.isFinite(amount) ||
+        amountCents <= 0
+    ) {
+
+        showUserMessage(
+            "Enter a valid amount.",
+            true
+        );
+
+        return;
+
+    }
+
+
+    if (
+        amountCents >
+        remainingCents
+    ) {
+
+        showUserMessage(
+            "That would put the goal over its target.",
+            true
+        );
+
+        return;
+
+    }
+
+
+    const balanceCents =
+        moneyToCents(
+            account.balance
+        );
+
+
+    if (
+        amountCents >
+        balanceCents
+    ) {
+
+        showUserMessage(
+            "🚨 INSUFFICIENT FUNDS!",
+            true
+        );
+
+        return;
+
+    }
+
+
+    account.balance =
+        centsToMoney(
+            balanceCents -
+            amountCents
+        );
+
+
+    goal.amount =
+        centsToMoney(
+            getGoalCents(
+                goal
+            ) +
+            amountCents
+        );
+
+
+    updateSavedCompatibilityValue(
+        account
+    );
+
+
+    saveDatabase();
+
+    updateUserDisplay();
+
+
+    if (
+        isGoalComplete(
+            goal
+        )
+    ) {
+
+        showUserMessage(
+            "🏆 GOAL COMPLETE!"
+        );
+
+    } else {
+
+        showUserMessage(
+            "🎯 Money added to goal!"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   WITHDRAW MONEY
+========================================================= */
+
+function withdrawMoney() {
+
+    const account =
+        accounts[currentUser];
+
+
+    const overlay =
+        createModal(
+            "🟣 WITHDRAW"
+        );
+
+
+    const text =
+        document.createElement(
+            "p"
+        );
+
+
+    text.textContent =
+        "Where do you want to withdraw money from?";
+
+
+    overlay.content.appendChild(
+        text
+    );
+
+
+    const safetyButton =
+        createModalButton(
+            "🛡️ SAFETY ACCOUNT — €" +
+            centsToMoney(
+                getSafetyCents(
+                    account
+                )
+            ).toFixed(2),
+            function() {
+
+                closeModal(
+                    overlay
+                );
+
+                withdrawFromSafety();
+
+            }
+        );
+
+
+    overlay.content.appendChild(
+        safetyButton
+    );
+
+
+    const completedGoals =
+        account.goals.filter(
+            function(goal) {
+
+                return isGoalComplete(
+                    goal
+                );
+
+            }
+        );
+
+
+    if (
+        completedGoals.length > 0
+    ) {
+
+        const title =
+            document.createElement(
+                "h3"
+            );
+
+
+        title.textContent =
+            "🏆 COMPLETED GOALS";
+
+
+        overlay.content.appendChild(
+            title
+        );
+
+
+        for (
+            const goal of completedGoals
+        ) {
+
+            const goalButton =
+                createModalButton(
+                    "🎯 " +
+                    goal.name +
+                    " — €" +
+                    centsToMoney(
+                        getGoalCents(
+                            goal
+                        )
+                    ).toFixed(2),
+                    function() {
+
+                        closeModal(
+                            overlay
+                        );
+
+                        withdrawFromGoal(
+                            goal.id
+                        );
+
+                    }
+                );
+
+
+            overlay.content.appendChild(
+                goalButton
+            );
+
+        }
+
+    } else {
+
+        const noGoals =
+            document.createElement(
+                "p"
+            );
+
+
+        noGoals.textContent =
+            "🎯 No completed goals available yet.";
+
+
+        overlay.content.appendChild(
+            noGoals
+        );
+
+    }
+
+
+    const closeButton =
+        createModalButton(
+            "CANCEL",
+            function() {
+
+                closeModal(
+                    overlay
+                );
+
+            }
+        );
+
+
+    overlay.content.appendChild(
+        closeButton
+    );
+
+}
+
+
+/* =========================================================
+   WITHDRAW FROM SAFETY
+========================================================= */
+
+function withdrawFromSafety() {
+
+    const account =
+        accounts[currentUser];
+
+
+    const safetyCents =
+        getSafetyCents(
+            account
+        );
+
+
+    if (
+        safetyCents <= 0
+    ) {
+
+        showUserMessage(
+            "🛡️ Safety Account is empty.",
+            true
+        );
+
+        return;
+
+    }
+
+
+    const input =
+        prompt(
+            "How much do you want to withdraw from the Safety Account?\n\n" +
+            "Available: €" +
+            centsToMoney(
+                safetyCents
+            ).toFixed(2)
+        );
+
+
+    if (
+        input === null
+    ) {
+
+        return;
+
+    }
+
+
+    const amount =
+        Number(
+            input.replace(
+                ",",
+                "."
+            )
+        );
+
+
+    const amountCents =
+        moneyToCents(
+            amount
+        );
+
+
+    if (
+        !Number.isFinite(amount) ||
+        amountCents <= 0
+    ) {
+
+        showUserMessage(
+            "Enter a valid amount.",
+            true
+        );
+
+        return;
+
+    }
+
+
+    if (
+        amountCents >
+        safetyCents
+    ) {
+
+        showUserMessage(
+            "🚨 NOT ENOUGH MONEY IN SAFETY ACCOUNT!",
+            true
+        );
+
+        return;
+
+    }
+
+
+    account.safety =
+        centsToMoney(
+            safetyCents -
+            amountCents
+        );
+
+
+    account.balance =
+        centsToMoney(
+            moneyToCents(
+                account.balance
+            ) +
+            amountCents
+        );
+
+
+    updateSavedCompatibilityValue(
+        account
+    );
+
+
+    saveDatabase();
+
+    updateUserDisplay();
+
+
+    showUserMessage(
+        "🛡️ Money withdrawn from Safety Account!"
+    );
+
+}
+
+
+/* =========================================================
+   WITHDRAW FROM GOAL
+========================================================= */
+
+function withdrawFromGoal(
+    goalId
+) {
+
+    const account =
+        accounts[currentUser];
+
+
+    const goal =
+        account.goals.find(
+            function(item) {
+
+                return (
+                    item.id ===
+                    goalId
+                );
+
+            }
+        );
+
+
+    if (!goal) {
+
+        showUserMessage(
+            "Goal not found.",
+            true
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !isGoalComplete(
+            goal
+        )
+    ) {
+
+        showUserMessage(
+            "🚨 THIS GOAL ISN'T COMPLETE YET!",
+            true
+        );
+
+        return;
+
+    }
+
+
+    const amountCents =
+        getGoalCents(
+            goal
+        );
+
+
+    const confirmed =
+        confirm(
+            "🏆 " +
+            goal.name +
+            "\n\n" +
+            "Withdraw €" +
+            centsToMoney(
+                amountCents
+            ).toFixed(2) +
+            " from this completed goal?"
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    account.balance =
+        centsToMoney(
+            moneyToCents(
+                account.balance
+            ) +
+            amountCents
+        );
+
+
+    /*
+       Goal stays there after withdrawal,
+       but its amount resets to zero.
+       This lets you reuse the goal.
+    */
+
+    goal.amount =
+        0;
+
+
+    updateSavedCompatibilityValue(
+        account
+    );
+
+
+    saveDatabase();
+
+    updateUserDisplay();
+
+
+    showUserMessage(
+        "🏆 Goal money withdrawn!"
+    );
 
 }
 
@@ -528,7 +2958,9 @@ function buyMoney() {
 
 
     const amountCents =
-        moneyToCents(amount);
+        moneyToCents(
+            amount
+        );
 
 
     const balanceCents =
@@ -565,200 +2997,6 @@ function buyMoney() {
 
     showUserMessage(
         "Purchase successful!"
-    );
-
-}
-
-
-/* =========================================================
-   SAVE
-========================================================= */
-
-function saveMoney() {
-
-    const input =
-        prompt(
-            "How much do you want to save?"
-        );
-
-
-    if (input === null) {
-        return;
-    }
-
-
-    const amount =
-        Number(
-            input.replace(",", ".")
-        );
-
-
-    if (
-        !Number.isFinite(amount) ||
-        amount <= 0
-    ) {
-
-        showUserMessage(
-            "Enter a valid amount.",
-            true
-        );
-
-        return;
-    }
-
-
-    const account =
-        accounts[currentUser];
-
-
-    const amountCents =
-        moneyToCents(amount);
-
-
-    const balanceCents =
-        moneyToCents(
-            account.balance
-        );
-
-
-    const savedCents =
-        moneyToCents(
-            account.saved
-        );
-
-
-    if (
-        amountCents >
-        balanceCents
-    ) {
-
-        showUserMessage(
-            "🚨 INSUFFICIENT FUNDS!",
-            true
-        );
-
-        return;
-    }
-
-
-    account.balance =
-        centsToMoney(
-            balanceCents -
-            amountCents
-        );
-
-
-    account.saved =
-        centsToMoney(
-            savedCents +
-            amountCents
-        );
-
-
-    saveDatabase();
-
-    updateUserDisplay();
-
-
-    showUserMessage(
-        "Money saved!"
-    );
-
-}
-
-
-/* =========================================================
-   WITHDRAW
-========================================================= */
-
-function withdrawMoney() {
-
-    const input =
-        prompt(
-            "How much do you want to withdraw?"
-        );
-
-
-    if (input === null) {
-        return;
-    }
-
-
-    const amount =
-        Number(
-            input.replace(",", ".")
-        );
-
-
-    if (
-        !Number.isFinite(amount) ||
-        amount <= 0
-    ) {
-
-        showUserMessage(
-            "Enter a valid amount.",
-            true
-        );
-
-        return;
-    }
-
-
-    const account =
-        accounts[currentUser];
-
-
-    const amountCents =
-        moneyToCents(amount);
-
-
-    const savedCents =
-        moneyToCents(
-            account.saved
-        );
-
-
-    const balanceCents =
-        moneyToCents(
-            account.balance
-        );
-
-
-    if (
-        amountCents >
-        savedCents
-    ) {
-
-        showUserMessage(
-            "🚨 NOT ENOUGH SAVED MONEY!",
-            true
-        );
-
-        return;
-    }
-
-
-    account.saved =
-        centsToMoney(
-            savedCents -
-            amountCents
-        );
-
-
-    account.balance =
-        centsToMoney(
-            balanceCents +
-            amountCents
-        );
-
-
-    saveDatabase();
-
-    updateUserDisplay();
-
-
-    showUserMessage(
-        "Money withdrawn!"
     );
 
 }
@@ -922,16 +3160,26 @@ function refreshAdminPanel() {
 
         saved.textContent =
             "🏦 Saved: €" +
-            cleanMoney(
-                account.saved
+            centsToMoney(
+                getTotalSavedCents(
+                    account
+                )
             ).toFixed(2);
 
 
-        info.appendChild(name);
+        info.appendChild(
+            name
+        );
 
-        info.appendChild(balance);
 
-        info.appendChild(saved);
+        info.appendChild(
+            balance
+        );
+
+
+        info.appendChild(
+            saved
+        );
 
 
         const buttons =
@@ -996,17 +3244,25 @@ function refreshAdminPanel() {
             increaseButton
         );
 
+
         buttons.appendChild(
             deleteButton
         );
 
 
-        div.appendChild(info);
+        div.appendChild(
+            info
+        );
 
-        div.appendChild(buttons);
+
+        div.appendChild(
+            buttons
+        );
 
 
-        list.appendChild(div);
+        list.appendChild(
+            div
+        );
 
     }
 
@@ -1464,8 +3720,6 @@ async function redeemVoucherFromFile(event) {
             );
 
 
-        /* CHECK FORMAT */
-
         if (
             voucher.type !==
             "MONEY_SYSTEM_VOUCHER"
@@ -1487,8 +3741,6 @@ async function redeemVoucherFromFile(event) {
         }
 
 
-        /* CHECK ID */
-
         if (
             !voucher.voucherId
         ) {
@@ -1498,8 +3750,6 @@ async function redeemVoucherFromFile(event) {
             );
         }
 
-
-        /* CHECK AMOUNT */
 
         const amountCents =
             Number(
@@ -1520,8 +3770,6 @@ async function redeemVoucherFromFile(event) {
         }
 
 
-        /* CHECK REDEEMED FLAG */
-
         if (
             voucher.redeemed === true
         ) {
@@ -1534,8 +3782,6 @@ async function redeemVoucherFromFile(event) {
             return;
         }
 
-
-        /* CHECK LOCAL USED LIST */
 
         if (
             usedVouchers[
@@ -1551,8 +3797,6 @@ async function redeemVoucherFromFile(event) {
             return;
         }
 
-
-        /* SHOW CONFIRMATION */
 
         const confirmed =
             confirm(
@@ -1571,8 +3815,6 @@ async function redeemVoucherFromFile(event) {
         }
 
 
-        /* ADD MONEY */
-
         const account =
             accounts[currentUser];
 
@@ -1589,8 +3831,6 @@ async function redeemVoucherFromFile(event) {
                 amountCents
             );
 
-
-        /* MARK USED LOCALLY */
 
         usedVouchers[
             voucher.voucherId
@@ -1609,11 +3849,6 @@ async function redeemVoucherFromFile(event) {
 
         saveUsedVouchers();
 
-
-        /*
-           CHANGE THE ACTUAL VOUCHER
-           TO REDEEMED = TRUE
-        */
 
         voucher.redeemed =
             true;
@@ -1739,7 +3974,7 @@ function logout() {
 
 
 /* =========================================================
-   BUTTONS
+   BUTTON CONNECTIONS
 ========================================================= */
 
 document
